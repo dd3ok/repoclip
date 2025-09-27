@@ -36,9 +36,6 @@ def get_config(request: Request):
     base = f"{request.url.scheme}://{request.url.netloc}"
     return {"API_URL": base}
 
-# 세션별로 업로드된 파일 이름을 저장하는 딕셔너리
-uploaded_filenames = {}
-
 @app.websocket("/ws/{session_id}")
 async def ws_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
@@ -100,9 +97,6 @@ async def save_upload_file(upload: UploadFile, dest: Path) -> None:
                 break
             f.write(chunk)
     await upload.seek(0)
-
-# 세션별로 업로드된 파일 이름을 저장하는 딕셔너리
-uploaded_filenames = {}
 
 @app.post("/analyze_zip", response_model=AnalyzeResponse)
 async def analyze_zip(file: UploadFile = File(...), x_session_id: Optional[str] = Header(None)):
