@@ -477,10 +477,10 @@ footer a {
 }
 
 .logo-mark {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    box-shadow: 0 6px 14px rgba(2, 132, 199, 0.25);
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    box-shadow: 0 10px 22px rgba(2, 132, 199, 0.25);
     background: var(--secondary-color);
 }
 
