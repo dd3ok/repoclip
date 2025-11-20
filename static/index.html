@@ -12,17 +12,22 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1><a id="home-link" href="/">Repoclip</a></h1>
+            <h1>
+                <a id="home-link" href="/">
+                    <img src="/static/favicon.png" alt="Repoclip" class="logo-mark">
+                    Repoclip
+                </a>
+            </h1>
             <div class="intro">
                 <p>📂➡️📄 Github Repository → Clipboard</p>
-                <p>🤖💬 LLM 컨텍스트, 코드 분석, 프로젝트 문서화에 사용하세요</p>
+                <p>🤖 LLM 컨텍스트, 코드 분석, 프로젝트 문서화에 사용하세요</p>
             </div>
         </header>
 
         <main>
             <!-- 분석 방식 선택 탭 -->
             <div class="card">
-                <h2>어디서 불러올까요?</h2>
+                <h2>어디에서 불러올까요?</h2>
                 <div id="analyze-tabs" style="display:flex; gap:0.75rem; margin-bottom:1rem;">
                     <button id="tab-git" class="btn" data-active="true">Repository에서 불러오기</button>
                     <button id="tab-zip" class="btn" data-active="false"
@@ -32,7 +37,7 @@
                 <!-- Git URL 분석 폼 -->
                 <form id="analyze-form" style="display:block;">
                     <div class="form-group">
-                        <input type="url" id="repo-url-input" placeholder="https://github.com/dd3ok/repoclip" required>
+                        <input type="url" id="repo-url-input" placeholder="https://github.com/dd3ok/repoclip">
                         <button type="submit" id="analyze-btn" class="btn"><span>불러오기</span></button>
                     </div>
                 </form>

@@ -514,10 +514,14 @@ loadConfig().then(() => {
         setLoading(dom.analyzeBtn, true);
         dom.analysisResult.style.display = 'none';
         try {
+            const repoUrl = (dom.repoUrlInput.value || '').trim() || dom.repoUrlInput.placeholder;
+            if (!repoUrl) {
+                throw new Error('불러올 저장소 URL을 입력해주세요.');
+            }
             const response = await fetch(`${API_BASE_URL}/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Session-Id': sessionId },
-                body: JSON.stringify({ repo_url: dom.repoUrlInput.value })
+                body: JSON.stringify({ repo_url: repoUrl })
             });
             if (!response.ok) throw new Error((await response.json()).detail || '분석에 실패했습니다.');
             const data = await response.json();
