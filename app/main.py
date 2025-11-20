@@ -14,7 +14,7 @@ from .models import AnalyzeRequest, AnalyzeResponse, ExportRequest, ExportTextRe
 from .services import clone_repo_to_session, analyze_repo_path, unpack_zip_to_session
 from .utils import safe_filename, session_dir, clean_session, collect_files_for_export, render_markdown_pages, ensure_safe_root
 
-app = FastAPI(title="repo2md")
+app = FastAPI(title="repoclip")
 
 app.add_middleware(
     CORSMiddleware,
@@ -157,7 +157,7 @@ async def analyze_zip(file: UploadFile = File(...), x_session_id: Optional[str] 
 
     # 1) 업로드 ZIP을 고유 이름으로 저장(세션과 연결)
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", prefix=f"repo2md_{x_session_id}_") as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", prefix=f"repoclip_{x_session_id}_") as tmp:
             upload_path = Path(tmp.name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create temp file: {e}")

@@ -73,6 +73,8 @@ loadConfig().then(() => {
     const dom = {
         // 공통
         errorMessage: document.getElementById('error-message'),
+        errorToast: document.getElementById('error-toast'),
+        errorClose: document.getElementById('error-close'),
         analysisResult: document.getElementById('analysis-result'),
         repoNameDisplay: document.getElementById('repo-name-display'),
         extsContainer: document.getElementById('exts-container'),
@@ -109,6 +111,7 @@ loadConfig().then(() => {
     let analysisData = {};
     let previewPages = [];
     let currentPageIndex = 0;
+    let errorHideTimer = null;
 
     // 유틸
     function setLoading(button, isLoading) {
@@ -129,15 +132,33 @@ loadConfig().then(() => {
     }
 
     function showError(message) {
-        if (dom.errorMessage) {
-            dom.errorMessage.textContent = message;
-            dom.errorMessage.style.display = 'block';
-        } else {
+        // 새 토스트 알럿으로 에러 안내
+        if (!dom.errorToast || !dom.errorMessage) {
             console.error('Error element missing:', message);
+            alert(message);
+            return;
         }
+
+        dom.errorMessage.textContent = message;
+        dom.errorToast.classList.add('show');
+
+        if (errorHideTimer) clearTimeout(errorHideTimer);
+        errorHideTimer = setTimeout(() => {
+            hideError();
+        }, 6000);
     }
     function hideError() {
-        if (dom.errorMessage) dom.errorMessage.style.display = 'none';
+        if (!dom.errorToast) return;
+        dom.errorToast.classList.remove('show');
+        if (dom.errorMessage) dom.errorMessage.textContent = '';
+        if (errorHideTimer) {
+            clearTimeout(errorHideTimer);
+            errorHideTimer = null;
+        }
+    }
+
+    if (dom.errorClose) {
+        dom.errorClose.addEventListener('click', hideError);
     }
 
     function renderPreviewPage() {

@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Repoclip - Convert Your Git Repository or ZIP to a Clipboard</title>
+    <title>Repoclip - Repository to clipboard</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.png">
     <link rel="stylesheet" href="/static/index.css">
 </head>
 
@@ -31,7 +32,7 @@
                 <!-- Git URL 분석 폼 -->
                 <form id="analyze-form" style="display:block;">
                     <div class="form-group">
-                        <input type="url" id="repo-url-input" placeholder="https://github.com/dd3ok/repo2md" required>
+                        <input type="url" id="repo-url-input" placeholder="https://github.com/dd3ok/repoclip" required>
                         <button type="submit" id="analyze-btn" class="btn"><span>불러오기</span></button>
                     </div>
                 </form>
@@ -61,7 +62,6 @@
                 </form>
 
 
-                <div id="error-message"></div>
             </div>
 
             <!-- 분석 결과 -->
@@ -88,6 +88,16 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- 에러 알럿 -->
+    <div id="error-toast" role="alert" aria-live="assertive">
+        <div class="error-icon">!</div>
+        <div class="error-copy">
+            <p class="error-title">문제가 발생했어요</p>
+            <p id="error-message"></p>
+        </div>
+        <button id="error-close" class="btn ghost-btn" type="button">닫기</button>
     </div>
 
     <!-- 마크다운 미리보기 모달 -->

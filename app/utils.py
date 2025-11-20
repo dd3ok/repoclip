@@ -26,7 +26,7 @@ EXCLUDED_FILE_TYPES = {
 }
 
 # 프로젝트 루트에 .repos 디렉토리를 생성하여 임시 파일들을 안전하게 관리
-SAFE_ROOT = Path(os.getenv("REPO2MD_ROOT", ".repos")).resolve()
+SAFE_ROOT = Path(os.getenv("REPOCLIP_ROOT", ".repos")).resolve()
 
 def ensure_safe_root() -> Path:
     """SAFE_ROOT 디렉토리가 존재하는지 확인하고 없으면 생성합니다."""
