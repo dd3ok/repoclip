@@ -84,6 +84,10 @@ loadConfig().then(() => {
         modalClose: document.getElementById('modal-close'),
         markdownPreview: document.getElementById('markdown-preview'),
         copyButton: document.getElementById('copy-button'),
+        copyAllButton: document.getElementById('copy-all-button'),
+        prevPageBtn: document.getElementById('prev-page'),
+        nextPageBtn: document.getElementById('next-page'),
+        pageIndicator: document.getElementById('page-indicator'),
 
         // Git URL 분석
         analyzeForm: document.getElementById('analyze-form'),
@@ -103,6 +107,8 @@ loadConfig().then(() => {
     }
 
     let analysisData = {};
+    let previewPages = [];
+    let currentPageIndex = 0;
 
     // 유틸
     function setLoading(button, isLoading) {
@@ -123,10 +129,40 @@ loadConfig().then(() => {
     }
 
     function showError(message) {
-        dom.errorMessage.textContent = message;
-        dom.errorMessage.style.display = 'block';
+        if (dom.errorMessage) {
+            dom.errorMessage.textContent = message;
+            dom.errorMessage.style.display = 'block';
+        } else {
+            console.error('Error element missing:', message);
+        }
     }
-    function hideError() { dom.errorMessage.style.display = 'none'; }
+    function hideError() {
+        if (dom.errorMessage) dom.errorMessage.style.display = 'none';
+    }
+
+    function renderPreviewPage() {
+        if (!dom.markdownPreview) return;
+        if (!previewPages || previewPages.length === 0) {
+            dom.markdownPreview.textContent = '';
+            return;
+        }
+        dom.markdownPreview.textContent = previewPages[currentPageIndex] || '';
+
+        const total = previewPages.length;
+        const isPaged = total > 1;
+        const controls = [dom.prevPageBtn, dom.nextPageBtn, dom.pageIndicator, dom.copyAllButton];
+        controls.forEach(el => { if (el) el.style.display = isPaged ? 'inline-block' : 'none'; });
+
+        if (dom.pageIndicator) dom.pageIndicator.textContent = `${currentPageIndex + 1} / ${total}`;
+        if (dom.prevPageBtn) dom.prevPageBtn.disabled = currentPageIndex === 0;
+        if (dom.nextPageBtn) dom.nextPageBtn.disabled = currentPageIndex >= total - 1;
+    }
+
+    function setPreviewPages(pages) {
+        previewPages = Array.isArray(pages) && pages.length ? pages : [''];
+        currentPageIndex = 0;
+        renderPreviewPage();
+    }
 
     function createExtCheckbox(id, value, checked = true) {
         const wrapper = document.createElement('div');
@@ -144,48 +180,153 @@ loadConfig().then(() => {
         return wrapper;
     }
 
-    function renderInteractiveTree(node, container) {
-        const li = document.createElement('li');
-        const label = document.createElement('label');
-        label.className = 'tree-item-label';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = node.path;
-        checkbox.checked = true;
-        checkbox.dataset.type = node.type;
-        const span = document.createElement('span');
-        span.className = node.type === 'directory' ? 'dir-item' : 'file-item';
-        span.textContent = node.name;
-        label.appendChild(checkbox); label.appendChild(span);
-        li.appendChild(label);
-        if (node.type === 'directory' && node.children?.length > 0) {
-            const ul = document.createElement('ul');
-            node.children.forEach(child => renderInteractiveTree(child, ul));
-            li.appendChild(ul);
+    function renderInteractiveTree(node, container, isRoot = false) {
+        if (node.type === 'directory') {
+            if (isRoot) {
+                const block = document.createElement('div');
+                block.className = 'tree-root-block';
+
+                const header = document.createElement('div');
+                header.className = 'tree-root-header';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = node.path;
+                checkbox.checked = true;
+                checkbox.dataset.type = 'directory';
+                checkbox.dataset.root = 'true';
+
+                const span = document.createElement('span');
+                span.className = 'dir-item';
+                span.textContent = node.name;
+
+                header.appendChild(checkbox);
+                header.appendChild(span);
+                block.appendChild(header);
+
+                if (node.children?.length > 0) {
+                    const childWrapper = document.createElement('div');
+                    childWrapper.className = 'tree-children';
+                    node.children.forEach(child => renderInteractiveTree(child, childWrapper));
+                    block.appendChild(childWrapper);
+                }
+
+                container.appendChild(block);
+                return;
+            }
+
+            const details = document.createElement('details');
+            details.className = 'tree-directory';
+            details.open = true;
+            details.dataset.treeNode = 'directory';
+
+            const summary = document.createElement('summary');
+            summary.className = 'tree-summary';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = node.path;
+            checkbox.checked = true;
+            checkbox.dataset.type = 'directory';
+            checkbox.addEventListener('click', (e) => e.stopPropagation());
+
+            const span = document.createElement('span');
+            span.className = 'dir-item';
+            span.textContent = node.name;
+
+            summary.appendChild(checkbox);
+            summary.appendChild(span);
+            details.appendChild(summary);
+
+            if (node.children?.length > 0) {
+                const childWrapper = document.createElement('div');
+                childWrapper.className = 'tree-children';
+                node.children.forEach(child => renderInteractiveTree(child, childWrapper));
+                details.appendChild(childWrapper);
+            }
+
+            container.appendChild(details);
+        } else {
+            const row = document.createElement('div');
+            row.className = 'tree-leaf';
+            row.dataset.treeNode = 'file';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = node.path;
+            checkbox.checked = true;
+            checkbox.dataset.type = 'file';
+
+            const span = document.createElement('span');
+            span.className = 'file-item';
+            span.textContent = node.name;
+
+            row.appendChild(checkbox);
+            row.appendChild(span);
+            container.appendChild(row);
         }
-        container.appendChild(li);
     }
 
     function syncExtensionsFromTree() {
-        const checkedFiles = dom.treeContainer.querySelectorAll('input[data-type="file"]:checked');
-        const activeExtensions = new Set();
-        checkedFiles.forEach(fileCheckbox => {
-            const ext = fileCheckbox.value.split('.').pop();
-            if (ext && fileCheckbox.value.includes('.')) {
-                activeExtensions.add(`.${ext}`);
-            }
-        });
+        if (!dom.treeContainer) return;
         const allExtCheckboxes = dom.extsContainer.querySelectorAll('.ext-checkbox');
-        allExtCheckboxes.forEach(extCheckbox => {
-            extCheckbox.checked = activeExtensions.has(extCheckbox.value);
-        });
         const allChecked = Array.from(allExtCheckboxes).every(cb => cb.checked);
         dom.extsSelectAll.checked = allChecked;
     }
 
+    function refreshDirectoryStates() {
+        if (!dom.treeContainer) return;
+        const directories = dom.treeContainer.querySelectorAll('.tree-directory');
+        directories.forEach(dir => {
+            const parentCheckbox = dir.querySelector('summary input[type="checkbox"]');
+            if (!parentCheckbox) return;
+            const childCheckboxes = dir.querySelectorAll('.tree-children input[type="checkbox"]');
+            if (childCheckboxes.length === 0) {
+                parentCheckbox.indeterminate = false;
+                return;
+            }
+            const childArray = Array.from(childCheckboxes);
+            const allChecked = childArray.every(cb => cb.checked);
+            const anyChecked = childArray.some(cb => cb.checked);
+            parentCheckbox.checked = allChecked;
+            parentCheckbox.indeterminate = !allChecked && anyChecked;
+        });
+
+        const rootHeader = dom.treeContainer.querySelector('.tree-root-header input[type="checkbox"]');
+        const rootChildren = dom.treeContainer.querySelectorAll('.tree-root .tree-children input[type="checkbox"]');
+        if (rootHeader && rootChildren.length > 0) {
+            const childArray = Array.from(rootChildren);
+            const allChecked = childArray.every(cb => cb.checked);
+            const anyChecked = childArray.some(cb => cb.checked);
+            rootHeader.checked = allChecked;
+            rootHeader.indeterminate = !allChecked && anyChecked;
+        }
+    }
+
+    function pruneEmptyDirectories(node) {
+        if (!node || node.type !== 'directory') return node;
+        const prunedChildren = [];
+        if (Array.isArray(node.children)) {
+            node.children.forEach(child => {
+                if (child.type === 'directory') {
+                    const pruned = pruneEmptyDirectories(child);
+                    if (pruned && pruned.children && pruned.children.length > 0) {
+                        prunedChildren.push(pruned);
+                    }
+                } else {
+                    prunedChildren.push(child);
+                }
+            });
+        }
+        node.children = prunedChildren;
+        return (node.children && node.children.length > 0) || node.path === '' ? node : null;
+    }
+
     function renderAnalysis(data) {
         analysisData = data;
-        dom.repoNameDisplay.textContent = analysisData.repo_name || '';
+        if (dom.repoNameDisplay) {
+            dom.repoNameDisplay.textContent = analysisData.repo_name || '';
+        }
 
         // 확장자 렌더
         dom.extsContainer.innerHTML = '';
@@ -197,9 +338,14 @@ loadConfig().then(() => {
         // 트리 렌더
         dom.treeContainer.innerHTML = '';
         if (analysisData.dirs_tree) {
-            const rootUl = document.createElement('ul');
-            renderInteractiveTree(analysisData.dirs_tree, rootUl);
-            dom.treeContainer.appendChild(rootUl);
+            const root = document.createElement('div');
+            root.className = 'tree-root';
+            const pruned = pruneEmptyDirectories(analysisData.dirs_tree);
+            if (pruned) {
+                renderInteractiveTree(pruned, root, true);
+            }
+            dom.treeContainer.appendChild(root);
+            refreshDirectoryStates();
         }
 
         dom.analysisResult.style.display = 'flex';
@@ -208,6 +354,7 @@ loadConfig().then(() => {
     async function handleExport(type) {
         const selectedExts = Array.from(dom.extsContainer.querySelectorAll('.ext-checkbox:checked')).map(el => el.value);
         const selectedDirs = Array.from(dom.treeContainer.querySelectorAll('input[data-type="directory"]:checked')).map(el => el.value);
+        const selectedFiles = Array.from(dom.treeContainer.querySelectorAll('input[data-type="file"]:checked')).map(el => el.value);
         const exportBtn = (type === 'text') ? dom.exportTextBtn : dom.exportFileBtn;
         setLoading(exportBtn, true);
         try {
@@ -218,6 +365,7 @@ loadConfig().then(() => {
                     repo_name: analysisData.repo_name,
                     exts: selectedExts,
                     dirs: selectedDirs,
+                    files: selectedFiles,
                 })
             });
             if (!response.ok) throw new Error((await response.json()).detail || '내보내기에 실패했습니다.');
@@ -237,8 +385,14 @@ loadConfig().then(() => {
                 window.URL.revokeObjectURL(url); a.remove();
             } else {
                 const data = await response.json();
-                dom.markdownPreview.textContent = data.content;
-                dom.modalOverlay.style.display = 'flex';
+                const pages = (data.pages && data.pages.length) ? data.pages : (data.content ? [data.content] : []);
+                if (!pages.length) {
+                    throw new Error('선택된 파일이 없거나 빈 결과입니다.');
+                }
+                setPreviewPages(pages);
+                if (dom.modalOverlay) {
+                    dom.modalOverlay.style.display = 'flex';
+                }
             }
         } catch (error) {
             showError(`내보내기 오류: ${error.message}`);
@@ -355,14 +509,40 @@ loadConfig().then(() => {
     });
 
     // 트리 → 확장자 sync
-    dom.treeContainer.addEventListener('change', (e) => {
-        if (e.target.type === 'checkbox') {
-            const li = e.target.closest('li');
-            const childCheckboxes = li.querySelectorAll('ul input[type="checkbox"]');
-            childCheckboxes.forEach(child => { child.checked = e.target.checked; });
+    if (dom.treeContainer) {
+        dom.treeContainer.addEventListener('change', (e) => {
+            if (e.target.type !== 'checkbox') return;
+            const nodeType = e.target.dataset.type;
+            const isRoot = e.target.dataset.root === 'true';
+            if (nodeType === 'directory') {
+                const dirNode = e.target.closest('.tree-directory');
+                if (dirNode) {
+                    const childCheckboxes = dirNode.querySelectorAll('.tree-children input[type="checkbox"]');
+                    childCheckboxes.forEach(child => {
+                        child.checked = e.target.checked;
+                        child.indeterminate = false;
+                    });
+                } else {
+                    const rootBlock = e.target.closest('.tree-root-block');
+                    if (rootBlock) {
+                        const childCheckboxes = rootBlock.querySelectorAll('.tree-children input[type="checkbox"]');
+                        childCheckboxes.forEach(child => {
+                            child.checked = e.target.checked;
+                            child.indeterminate = false;
+                        });
+                    }
+                }
+                if (isRoot) {
+                    dom.extsContainer.querySelectorAll('.ext-checkbox').forEach(cb => {
+                        cb.checked = e.target.checked;
+                    });
+                    dom.extsSelectAll.checked = e.target.checked;
+                }
+            }
+            refreshDirectoryStates();
             syncExtensionsFromTree();
-        }
-    });
+        });
+    }
 
     // 확장자 → 트리 sync
     dom.extsContainer.addEventListener('change', (e) => {
@@ -376,6 +556,7 @@ loadConfig().then(() => {
                     fileCheckbox.checked = isChecked;
                 }
             });
+            refreshDirectoryStates();
             const allExts = dom.extsContainer.querySelectorAll('.ext-checkbox');
             const allChecked = Array.from(allExts).every(cb => cb.checked);
             dom.extsSelectAll.checked = allChecked;
@@ -386,26 +567,64 @@ loadConfig().then(() => {
     dom.extsSelectAll.addEventListener('change', () => {
         const isChecked = dom.extsSelectAll.checked;
         dom.extsContainer.querySelectorAll('.ext-checkbox').forEach(cb => { cb.checked = isChecked; });
-        dom.treeContainer.querySelectorAll('input[data-type="file"]').forEach(cb => { cb.checked = isChecked; });
-        dom.treeContainer.querySelectorAll('input[data-type="directory"]').forEach(cb => { cb.checked = isChecked; });
+        if (dom.treeContainer) {
+            dom.treeContainer.querySelectorAll('input[data-type="file"]').forEach(cb => { cb.checked = isChecked; });
+            dom.treeContainer.querySelectorAll('input[data-type="directory"]').forEach(cb => { cb.checked = isChecked; });
+            refreshDirectoryStates();
+        }
     });
 
     // Export 버튼들
-    dom.exportTextBtn.addEventListener('click', () => handleExport('text'));
-    dom.exportFileBtn.addEventListener('click', () => handleExport('file'));
+    if (dom.exportTextBtn) dom.exportTextBtn.addEventListener('click', () => handleExport('text'));
+    if (dom.exportFileBtn) dom.exportFileBtn.addEventListener('click', () => handleExport('file'));
 
     // 모달/클립보드
-    dom.modalClose.addEventListener('click', () => { dom.modalOverlay.style.display = 'none'; });
-    dom.copyButton.addEventListener('click', () => {
-        navigator.clipboard.writeText(dom.markdownPreview.textContent).then(() => {
-            dom.copyButton.textContent = '복사 완료!';
-            setTimeout(() => { dom.copyButton.textContent = '클립보드에 복사'; }, 2000);
-        }, () => {
-            dom.copyButton.textContent = '복사 실패';
-            setTimeout(() => { dom.copyButton.textContent = '클립보드에 복사'; }, 2000);
+    if (dom.modalClose && dom.modalOverlay) {
+        dom.modalClose.addEventListener('click', () => { dom.modalOverlay.style.display = 'none'; });
+    }
+    if (dom.copyButton && dom.markdownPreview) {
+        dom.copyButton.addEventListener('click', () => {
+            const text = dom.markdownPreview.textContent || '';
+            navigator.clipboard.writeText(text).then(() => {
+                dom.copyButton.textContent = '복사 완료!';
+                setTimeout(() => { dom.copyButton.textContent = '클립보드에 복사하기'; }, 2000);
+            }, () => {
+                dom.copyButton.textContent = '복사 실패';
+                setTimeout(() => { dom.copyButton.textContent = '클립보드에 복사하기'; }, 2000);
+            });
         });
-    });
-    dom.modalOverlay.addEventListener('click', (e) => {
-        if (e.target === dom.modalOverlay) dom.modalOverlay.style.display = 'none';
-    });
+    }
+    if (dom.copyAllButton) {
+        dom.copyAllButton.addEventListener('click', () => {
+            const text = (previewPages || []).join('\n\n');
+            navigator.clipboard.writeText(text).then(() => {
+                dom.copyAllButton.textContent = '전체 복사 완료!';
+                setTimeout(() => { dom.copyAllButton.textContent = '전체 복사'; }, 2000);
+            }, () => {
+                dom.copyAllButton.textContent = '복사 실패';
+                setTimeout(() => { dom.copyAllButton.textContent = '전체 복사'; }, 2000);
+            });
+        });
+    }
+    if (dom.prevPageBtn) {
+        dom.prevPageBtn.addEventListener('click', () => {
+            if (currentPageIndex > 0) {
+                currentPageIndex -= 1;
+                renderPreviewPage();
+            }
+        });
+    }
+    if (dom.nextPageBtn) {
+        dom.nextPageBtn.addEventListener('click', () => {
+            if (previewPages && currentPageIndex < previewPages.length - 1) {
+                currentPageIndex += 1;
+                renderPreviewPage();
+            }
+        });
+    }
+    if (dom.modalOverlay) {
+        dom.modalOverlay.addEventListener('click', (e) => {
+            if (e.target === dom.modalOverlay) dom.modalOverlay.style.display = 'none';
+        });
+    }
 });

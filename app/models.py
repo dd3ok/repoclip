@@ -9,6 +9,7 @@ class ExportRequest(BaseModel):
     repo_name: str
     exts: List[str]
     dirs: List[str]
+    files: Optional[List[str]] = None
 
 class TreeNode(BaseModel):
     name: str
@@ -24,4 +25,7 @@ class AnalyzeResponse(BaseModel):
     dirs_tree: TreeNode
 
 class ExportTextResponse(BaseModel):
-    content: str
+    paginated: bool
+    pages: List[str]
+    page_size: int
+    total_pages: int

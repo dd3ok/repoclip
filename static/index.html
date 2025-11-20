@@ -4,37 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Repo2MD - Convert Your Git Repository or ZIP to a Single Markdown File</title>
+    <title>Repoclip - Convert Your Git Repository or ZIP to a Clipboard</title>
     <link rel="stylesheet" href="/static/index.css">
 </head>
 
 <body>
     <div class="container">
         <header class="header">
-            <h1>Repo2MD</h1>
+            <h1><a id="home-link" href="/">Repoclip</a></h1>
             <div class="intro">
-                <p><a href="https://github.com/dd3ok/repo2md" target="_blank">https://github.com/dd3ok/repo2md</a></p>
-                <p>📂➡️📄 Git 레포 전체 구조 & 코드 → 하나의 마크다운/텍스트 으로 변환</p>
-                <p>🤖💬 LLM 컨텍스트로 활용 → 코드 분석/프로젝트 문서화에 유용</p>
+                <p>📂➡️📄 Github Repository → Clipboard</p>
+                <p>🤖💬 LLM 컨텍스트, 코드 분석, 프로젝트 문서화에 사용하세요</p>
             </div>
         </header>
 
         <main>
             <!-- 분석 방식 선택 탭 -->
             <div class="card">
-                <h2>1. 분석 방식 선택</h2>
+                <h2>어디서 불러올까요?</h2>
                 <div id="analyze-tabs" style="display:flex; gap:0.75rem; margin-bottom:1rem;">
-                    <button id="tab-git" class="btn" data-active="true">Git 저장소 URL 분석</button>
+                    <button id="tab-git" class="btn" data-active="true">Repository에서 불러오기</button>
                     <button id="tab-zip" class="btn" data-active="false"
-                        style="background-color: var(--secondary-color); color: var(--text-color);">ZIP 파일 업로드
-                        분석</button>
+                        style="background-color: var(--secondary-color); color: var(--text-color);">ZIP 파일 업로드</button>
                 </div>
 
                 <!-- Git URL 분석 폼 -->
                 <form id="analyze-form" style="display:block;">
                     <div class="form-group">
-                        <input type="url" id="repo-url-input" placeholder="https://github.com/user/repo.git" required>
-                        <button type="submit" id="analyze-btn" class="btn"><span>분석하기</span></button>
+                        <input type="url" id="repo-url-input" placeholder="https://github.com/dd3ok/repo2md" required>
+                        <button type="submit" id="analyze-btn" class="btn"><span>불러오기</span></button>
                     </div>
                 </form>
 
@@ -54,7 +52,7 @@
                         
                         <!-- 업로드/분석 버튼 (초기에 비활성화) -->
                         <button type="submit" id="analyze-zip-btn" class="btn" disabled>
-                            <span>업로드 후 분석</span>
+                            <span>업로드</span>
                         </button>
                     </div>
                     <div id="zip-progress" style="display:none; margin-top:0.75rem; color: var(--text-light-color);">
@@ -68,8 +66,8 @@
 
             <!-- 분석 결과 -->
             <div id="analysis-result" class="card">
-                <h2>2. 분석 결과 및 옵션 선택</h2>
-                <p><strong id="repo-name-display"></strong> repository에서 export 할 파일을 선택해주세요.</p>
+                <h2>어떤 파일을 내보낼까요?</h2>
+                <strong id="repo-name-display"></strong>불러온 파일을 확인하고 내보낼 파일을 선택하세요.
 
                 <div>
                     <h3>파일 확장자</h3>
@@ -80,12 +78,12 @@
                 </div>
 
                 <div>
-                    <h3>프로젝트 구조 및 디렉토리/파일 선택</h3>
+                    <h3>프로젝트 구조</h3>
                     <div id="tree-container" class="result-box"></div>
                 </div>
 
                 <div class="export-buttons">
-                    <button id="export-text-btn" class="btn">텍스트로 보기</button>
+                    <button id="export-text-btn" class="btn">클립보드에 복사</button>
                     <button id="export-file-btn" class="btn">파일로 내보내기</button>
                 </div>
             </div>
@@ -96,9 +94,13 @@
     <div id="modal-overlay">
         <div id="modal-content">
             <div class="modal-header">
-                <h3>마크다운 결과</h3>
-                <div>
-                    <button id="copy-button" class="btn">클립보드에 복사</button>
+                <h3>클립보드로 내보내기</h3>
+                <div class="modal-actions">
+                    <span id="page-indicator" style="display:none;"></span>
+                    <button id="prev-page" class="btn" style="display:none;">이전</button>
+                    <button id="next-page" class="btn" style="display:none;">다음</button>
+                    <button id="copy-button" class="btn">클립보드에 복사하기</button>
+                    <button id="copy-all-button" class="btn" style="display:none;">전체 복사</button>
                     <button id="modal-close" class="btn">닫기</button>
                 </div>
             </div>
